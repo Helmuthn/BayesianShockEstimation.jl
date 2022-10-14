@@ -1,5 +1,6 @@
 module BayesianShockEstimation
 
-# Write your package code here.
+include("core.jl")
+include("examples.jl")
 
 end

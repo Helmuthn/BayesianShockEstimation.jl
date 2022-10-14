@@ -1,4 +1,3 @@
-module core
 using SpecialFunctions: gamma
 # This file contains the core contributions of the work.
 
@@ -116,4 +115,3 @@ function SampleBoundary(boundaryparams::BoundaryParams)
     
 end
 export SampleBoundary
-end
