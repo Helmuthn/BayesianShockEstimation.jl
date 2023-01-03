@@ -4,7 +4,7 @@
 Helper function returns flux in from the conservation form of Burgers' Equation.
 
 # Arguments
- - `u` - The state value
+ - `u` : The state value
 """
 function flux_burgers(u)
     return 0.5 * u^2
@@ -17,8 +17,8 @@ Solves the Riemann problem for Burgers' equation and returns the average value.
 Helper function for Godunov's scheme.
 
 # Arguments
- - `ul` - The left state value
- - `ur  - The right state value
+ - `ul` : The left state value
+ - `ur  : The right state value
 
 # Returns
 The value of flux on the boundary between the regions.
@@ -56,8 +56,8 @@ end
 Solve for all right boundary flux values.
 
 # Arguments
- - `boundary_flux_right` - Output Array
- - `u` - State Values
+ - `boundary_flux_right` : Output Array
+ - `u`                   : State Values
 """
 function riemann_solver_burgers!(boundary_flux_right, u)
     ul = @view u[1:end-1]
@@ -72,8 +72,8 @@ end
 Compute the difference between the right and left flux
 
 # Arguments
- - `boundary_flux` - output array
- - `boundary_flux_right` - flux through right boundaries
+ - `boundary_flux`       : output array
+ - `boundary_flux_right` : flux through right boundaries
 """
 function flux_difference!(boundary_flux, boundary_flux_right)
     boundary_flux_right_t = @view boundary_flux_right[2:end]
@@ -88,12 +88,12 @@ end
 Step Burgers' equation according to Godunov's method
 
 # Arguments
- - `u_next` - Array to store the value
- - `boundary_flux` - Array of boundary flux storage
- - `boundary_flux_right` - Array of right boundary flux storage
- - `u`  - Array of values for the previous timestep
- - `dx` - Spatial grid size
- - `dt` - Temporal grid size
+ - `u_next`              : Array to store the value
+ - `boundary_flux`       : Array of boundary flux storage
+ - `boundary_flux_right` : Array of right boundary flux storage
+ - `u`                   : Array of values for the previous timestep
+ - `dx`                  : Spatial grid size
+ - `dt`                  : Temporal grid size
 
 # Returns
 An array of values for the next timestep
@@ -117,10 +117,10 @@ end
 Solve Burgers' equation numericallly with Godunov's method
 
 # Arguments
- - `u0`        - Initial Boundary Condition
- - `dx`        - Spatial grid size
- - `dt`        - Temporal grid size
- - `stepcount` - Number of steps
+ - `u0`        : Initial Boundary Condition
+ - `dx`        : Spatial grid size
+ - `dt`        : Temporal grid size
+ - `stepcount` : Number of steps
 
 # Returns
 A 2D array representing the numerical solution of Burgers' Equation
@@ -154,11 +154,11 @@ with a slope greater than the threshold.
 These points represent our approximations of shocks.
 
 # Arguments
- - `u0`        - Initial Boundary Condition
- - `dx`        - Spatial grid size
- - `dt`        - Temporal grid size
- - `stepcount` - Number of steps
- - `threshold` - slope threshold
+ - `u0`        : Initial Boundary Condition
+ - `dx`        : Spatial grid size
+ - `dt`        : Temporal grid size
+ - `stepcount` : Number of steps
+ - `threshold` : slope threshold
 """
 function godunov_burgers_1D_shocks(u0, dx, dt, stepcount, threshold)
     solution = godunov_burgers_1D(u0, dx, dt, stepcount)

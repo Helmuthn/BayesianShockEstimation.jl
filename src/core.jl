@@ -52,7 +52,7 @@ Generates an approximation of the shock density function.
 
 # Arguments
  - `systemparams` : Struct of parameters for system simulation
- - `samples`: Number of monte carlo samples
+ - `samples`      : Number of Monte Carlo samples
 
 # Returns
 A list of approximate densities
@@ -66,7 +66,7 @@ function ShockDensity(systemparams::ShockParams, boundaryparams::BoundaryParams,
     estimates, variances, RTSvariances = RTS_Smooth(samples, σ_w, σ_v)
     
     # Monte Carlo Integration Based On Stochastic Boundaries
-    for i in range(samples)
+    for _ in range(samples)
         boundary = RTS_sample(estimates, variances, RTSvariances, σ_w)
         IncrementShockCounts!(shockcounts, systemparams, boundary)
     end
@@ -101,9 +101,9 @@ end
 Computes shocks for a given boundary.
 
 # Arguments
- - `shockcounts`: Array of current shock counts
- - `systemparams` : Struct of parameters for system simulation
- - `boundary_values`: Boundary samples
+ - `shockcounts`     : Array of current shock counts
+ - `systemparams`    : Struct of parameters for system simulation
+ - `boundary_values` : Boundary samples
 
 # Returns
 A list of approximate densities
