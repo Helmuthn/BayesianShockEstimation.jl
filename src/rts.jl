@@ -35,8 +35,12 @@ the Kalman filter estimates as well as the RTS smoother variances.
 
 Applies to the random walk model
 
-x_{t+1} = x_t + w_t
-y_t     = x_t + v_t
+```math
+\begin{aligned}
+x_{t+1} &= x_t + w_t\\
+y_t     &= x_t + v_t\\
+\end{aligned}
+```
 
 where w_t and v_t are centered Gaussian random variables
 with variances σ_w^2 and σ_v^2, respectively.
@@ -65,8 +69,12 @@ export RTS_Smooth
 
 Computes the Kalman filter for a random walk model.
 
-x_{t+1} = x_t + w_t
-y_t     = x_t + v_t
+```math
+\begin{aligned}
+x_{t+1} &= x_t + w_t\\
+y_t     &= x_t + v_t\\
+\end{aligned}
+```
 
 where w_t and v_t are centered Gaussian random variables
 with variances σ_w^2 and σ_v^2, respectively.
