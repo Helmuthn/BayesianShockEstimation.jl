@@ -94,7 +94,7 @@ export ShockDensity
 Helper function that computes the volume of the integration ball
 """
 function BallVolume(systemparams::ShockParams)::Float64
-    dim = systemparams.dimension
+    dim = 2
     R = systemparams.ballsize
     return π^(dim/2) * R^dim / gamma(dim/2 + 1) 
 end
