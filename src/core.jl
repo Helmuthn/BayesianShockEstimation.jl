@@ -1,5 +1,6 @@
 using SpecialFunctions: gamma
 using Interpolations: linear_interpolation
+using LinearAlgebra: dot, norm
 # This file contains the core contributions of the work.
 
 """
@@ -112,11 +113,17 @@ Uses the method of characteristics to find shocks.
 function IncrementShockCounts!(shockcounts, systemparams::ShockParams, T, boundary_values)
 
     stepsize = 0.1
+    radius = systemparams.ballsize
+    threshold = systemparams.threshold
+    
     # Initialize a collection of ODEs evolving over space
     t_lst = Array(T * (1:0.1:length(boundary_values)))
     x_lst = zeros(length(t_lst))
     boundary = linear_interpolation(1:length(boundary_values), boundary_values)
     u_lst = boundary.(1:0.1:length(boundary_values))
+
+    shock_curves = []
+    shock_curve_indices = zeros(length(u_lst))
 
     for space_step in 1:size(shockcounts)[2]    
         # Update all characteristic trajectories
@@ -128,10 +135,12 @@ function IncrementShockCounts!(shockcounts, systemparams::ShockParams, T, bounda
 
         # Search for any out of order trajectories
         for i in 1:length(t_lst)-1
+
             # If they've permuted, then it's a shockwave
             if t_lst[i+1] < t_lst[i]
                 push!(removed, (i, i+1)) 
             end
+
             # If the gap is larger than twice the stepsize, 
             # Add another characteristic curve
             if t_lst[i+1] - t_lst[i] > 2 * stepsize
@@ -139,81 +148,101 @@ function IncrementShockCounts!(shockcounts, systemparams::ShockParams, T, bounda
             end
         end
 
+        # For each shock found in the last search
         for shock in removed
-            # Increment nearby shockcounts
+
+            # Compute intersection (curve knot)
+            # TODO
+            intersect = (1,1)
             
+            # Get the current shock curve
+            curve_ind = max(shock_curve_indices[shock[1]], shock_curve_indices[shock[2]])
+
+            # If the curve is new, create a new curve
+            if curve_ind == 0
+                append!(shock_curves, [])
+                curve_ind = length(shock_curves)
+            end
+
+            # Append the knot to the curve, as well as the slope for Rankine-Hugoniot
+            append!(shock_curves[curve_ind], (intersect, u_lst[shock[2]] - u_lst[shock[1]]))
+
+            # Set neighboring labels
+            if shock[1] > 1
+                shock_curve_indices[shock[1]-1] = curve_ind
+            end 
+            if shock[2] < length(shock_curve_indices)
+                shock_curve_indices[shock[2] + 1] = curve_ind
+            end
         end
 
         for trajectory in introduced
-            # Introduce new ODE trajectories
+            # Introduce new ODE trajectories in the center.
             
         end
-    end
-    
 
-#    # Find all potential interesection positions
-#    # Store as in an array of tuples (loc, time, t_1, t_2)
-#    intersections = []
-#    ind = 0
-#    for i in 1:length(boundary_values)
-#        for j in i+1:length(boundary_values)
-#            intersect = ComputeIntersection(T * i, boundary_values[i], T * j, boundary_values[j]) 
-#            if !isnothing(intersect)
-#                ind += 1
-#                intersections[ind] = (intersect[2], intersect[1], i, j)
-#            end
-#        end
-#    end
-#
-#    # Sort the array by position of shock
-#    sort!(intersections, by = x -> x[1])
-#
-#    # Prune the array to include at most one shock per boundary point
-#    used_boundaries = []
-#    ind = 0
-#    preserved_indices = []
-#    for ind in 1:length(intersections)
-#        loc, time, t1, t2 = intersections[ind]
-#        if !(t1 in used_boundaries) && !(t2 in used_boundaries)
-#            push!(used_boundaries, t1, t2)
-#            push!(preserved_indices, ind)
-#        end
-#    end
-#    intersections = intersections[preserved_indices]
-#
-#    # Sort remaining shock points into curves.
-#    # Note that shock curves must be piecewise quadratic
-#
-#    
-#    # Increment shockcounts along curves
-#    # For now, just do points
-#    radius = systemparams.ballsize
-#    gridsize = systemparams.stepsize
-#    γ = systemparams.threshold
-#
-#    for shock in intersections
-#
-#        # If the shock is sufficiently large
-#        magnitude = abs(boundary_values[shock[3]] - boundary_values[shock[4]])
-#        if magnitude > γ
-#
-#            # Then increment nearby grid points
-#            x_c, t_c = shock[1:2]/gridsize
-#            min_vals = Int(ceil((shock[1:2] .- radius)/gridsize))
-#            max_vals = Int(floor((shock[1:2] .+ radius)/gridsize))
-#            for x in min_vals[1]:max_vals[1]
-#                for t in min_vals[2]:max_vals[2]
-#                    if (x - x_c)^2 + (t - t_c)^2 < radius^2
-#                        shockcounts[x,t] += 1
-#                    end
-#                end
-#            end
-#        end
-#    end
-#    
+    end
+
+    # Delete the shocks
+    # deleteat!()
+    
+    # Add the new trajectories
+    # pushat!()
+
+    # Identify all of the indices to increment
+    increment_lst = FindPointsFromCurves(shock_curves, radius)
+
+    # Increment the indices
+    for loc in increment_lst
+        shockcounts[loc[1], loc[2]] += 1
+    end
 end
 export IncrementShockCounts!
 
+"""
+Helper function that converts curves to indices to increment
+"""
+function FindPointsFromCurves(shock_curves, radius)
+    increment_lst = []
+    for curve in shock_curves
+
+        # For each pair of knots, get all indices in the associated interval
+        for i in 1:length(curve)-1
+            knot1 = curve[i]
+            knot2 = curve[i+1]
+
+            x_indices = []
+            t_indices = []
+            for x in x_indices
+                for t in t_indices
+                    if distanceToSegment(knot1, knot2, [x,t]) < radius
+                        append!(increment_lst, [x,t])
+                    end
+                end 
+            end
+        end
+    end
+
+    return unique(increment_lst)
+end
+
+"""
+Helper function computing distance from p3
+to the line segment defined by the other points.
+"""
+function distanceToSegment(p1, p2, p3)
+    segment = p2-p1
+    dot_prod = dot(segment, p3)
+
+    if dot_prod > eps()
+        return norm(p2-p3)
+    elseif dot_prod < eps()
+        return norm(p1-p3)
+    else
+        num = abs((p2[1]-p1[1]) * (p1[2] - p3[2]) - (p1[1] - p3[1]) * (p2[2] - p1[1]))
+        return num/norm(p2-p1) 
+    end
+end
 
 """
     ComputeIntersection(t1, u1, t2, u2)
@@ -291,3 +320,156 @@ function BackwardsVarianceWalk(variances, σ_w)
     end
     return RTSvariances
 end
+
+
+#############################################
+###### Burgers Equation Solver ##############
+#############################################
+
+"""
+    flux_burgers(u)
+
+Helper function returns flux in from the conservation form of Burgers' Equation.
+
+# Arguments
+ - `u` - The state value
+"""
+function flux_burgers(u)
+    return 0.5 * u^2
+end
+
+"""
+    riemann_solver_burgers(ul, ur)
+
+Solves the Riemann problem for Burgers' equation and returns the average value.
+Helper function for Godunov's scheme.
+
+# Arguments
+ - `ul` - The left state value
+ - `ur  - The right state value
+
+# Returns
+The value of flux on the boundary between the regions.
+"""
+function riemann_solver_burgers(ul,ur)
+    # Characteristic curves of ul intersect boundary
+    if ul >= 0 && ur >= 0
+        return flux_burgers(ul)
+    
+    # Characteristic curves of ur intersect boundary    
+    elseif ul <= 0 && ur <= 0
+        return flux_burgers(ur)
+        
+    # Rarefaction with zero speed curve
+    elseif ul <= 0 && ur >= 0
+        return 0.0
+    
+    # Shock direction needed
+    elseif ul >= 0 && ur <= 0
+        
+        # Shock Travels Right
+        if ul + ur > 0
+            return flux_burgers(ul)
+            
+        # Shock Travels Left
+        else
+            return flux_burgers(ur)
+        end
+    end
+end
+
+"""
+    riemann_solver_burgers!(boundary_flux_right, u)
+
+Solve for all right boundary flux values.
+
+# Arguments
+ - `boundary_flux_right` - Output Array
+ - `u` - State Values
+"""
+function riemann_solver_burgers!(boundary_flux_right, u)
+    ul = @view u[1:end-1]
+    ur = @view u[2:end]
+    boundary_flux_right[1:end-1] .= riemann_solver_burgers.(ul, ur)
+    boundary_flux_right[end] = riemann_solver_burgers(u[end],u[1])
+end
+
+"""
+    flux_difference!(boundary_flux, boundary_flux_right)
+
+Compute the difference between the right and left flux
+
+# Arguments
+ - `boundary_flux` - output array
+ - `boundary_flux_right` - flux through right boundaries
+"""
+function flux_difference!(boundary_flux, boundary_flux_right)
+    boundary_flux_right_t = @view boundary_flux_right[2:end]
+    boundary_flux_left = @view boundary_flux_right[1:end-1]
+    boundary_flux[2:end] .= boundary_flux_right_t .- boundary_flux_left
+    boundary_flux[1] = boundary_flux_right[1] - boundary_flux_right[end]
+end
+
+"""
+    godunov_burgers_1D_step!(u_next, boundary_flux, boundary_flux_right, u, dx, dt)
+
+Step Burgers' equation according to Godunov's method
+
+# Arguments
+ - `u_next` - Array to store the value
+ - `boundary_flux` - Array of boundary flux storage
+ - `boundary_flux_right` - Array of right boundary flux storage
+ - `u`  - Array of values for the previous timestep
+ - `dx` - Spatial grid size
+ - `dt` - Temporal grid size
+
+# Returns
+An array of values for the next timestep
+
+# Notes
+Assumes periodic boundary conditions
+"""
+function godunov_burgers_1D_step!(u_next, boundary_flux, boundary_flux_right, u, λ )
+    # Get flux values
+    riemann_solver_burgers!(boundary_flux_right, u)
+    flux_difference!(boundary_flux, boundary_flux_right)
+    boundary_flux .*= λ
+    
+    u_next .= u
+    u_next .-= boundary_flux
+end
+
+"""
+    godunov_burgers_1D(u0, dx, dt, stepcount)
+
+Solve Burgers' equation numericallly with Godunov's method
+
+# Arguments
+ - `u0`        - Initial Boundary Condition
+ - `dx`        - Spatial grid size
+ - `dt`        - Temporal grid size
+ - `stepcount` - Number of steps
+
+# Returns
+A 2D array representing the numerical solution of Burgers' Equation
+"""
+function godunov_burgers_1D(u0, dx, dt, stepcount)
+    # Allocate flux memory
+    boundary_flux = zeros(length(u0))
+    boundary_flux_right = zeros(length(u0))
+    
+    # Allocate the output array
+    out = zeros(length(u0), stepcount)
+    out[:,1] .= u0
+    
+    λ = dt/dx
+
+    for i in range(2,stepcount)
+        u_next = @view out[:,i]
+        u      = @view out[:,i-1]
+        godunov_burgers_1D_step!(u_next, boundary_flux, boundary_flux_right, u, λ)
+    end
+
+    return out
+end
+export godunov_burgers_1D
