@@ -42,8 +42,8 @@ y_t     &= x_t + v_t\\\\
 \\end{aligned}
 ```
 
-where w_t and v_t are centered Gaussian random variables
-with variances σ_w^2 and σ_v^2, respectively.
+where ``w_t`` and ``v_t`` are centered Gaussian random variables
+with variances ``σ_w^2`` and ``σ_v^2``, respectively.
 
 # Arguments
  - `observations` : Timeseries observation
@@ -76,8 +76,8 @@ y_t     &= x_t + v_t\\\\
 \\end{aligned}
 ```
 
-where w_t and v_t are centered Gaussian random variables
-with variances σ_w^2 and σ_v^2, respectively.
+where ``w_t`` and ``v_t`` are centered Gaussian random variables
+with variances ``σ_w^2`` and ``σ_v^2``, respectively.
 
 # Arguments
  - `observations` : Timeseries observation
