@@ -18,7 +18,7 @@ Helper function for Godunov's scheme.
 
 # Arguments
  - `ul` : The left state value
- - `ur  : The right state value
+ - `ur` : The right state value
 
 # Returns
 The value of flux on the boundary between the regions.
