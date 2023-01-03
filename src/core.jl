@@ -14,7 +14,6 @@ Struct containing all need information for deterministic shock simulations
  - `stepcount` : Number of temporal steps
  - `ballsize`  : Integration ball size
  - `threshold` : Minimum shock threshold
- - `dimension` : System dimensionality
 
 """
 struct ShockParams
@@ -23,7 +22,6 @@ struct ShockParams
     stepcount
     ballsize
     threshold
-    dimension::Int
 end
 export ShockParams
 
