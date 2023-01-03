@@ -9,16 +9,18 @@ using LinearAlgebra: dot, norm
 Struct containing all need information for deterministic shock simulations
 
 # Parameters
- - `dynamics`: Representation of the dynamics
- - `stepsize`: Grid size
- - `ballsize`: Integration ball size
- - `threshold`: Minimum shock threshold
- - `dimension`: System dimensionality
+ - `stepsize_x`: Spatial grid size
+ - `stepsize_t`: Temporal grid size
+ - `stepcount` : Number of temporal steps
+ - `ballsize`  : Integration ball size
+ - `threshold` : Minimum shock threshold
+ - `dimension` : System dimensionality
 
 """
 struct ShockParams
-    dynamics
-    stepsize
+    stepsize_x
+    stepsize_t
+    stepcount
     ballsize
     threshold
     dimension::Int
@@ -33,7 +35,7 @@ Struct containing all needed information for boundary sampling
 # Parameters
  - `σ_w` : System noise standard deviation
  - `σ_v` : Measurement noise standard deviation
- - `t` : Sample interval
+ - `t`   : Sample interval
 
 """
 struct BoundaryParams
@@ -101,7 +103,6 @@ Computes shocks for a given boundary.
 # Arguments
  - `shockcounts`: Array of current shock counts
  - `systemparams` : Struct of parameters for system simulation
- - `T`: Sampling Interval
  - `boundary_values`: Boundary samples
 
 # Returns
@@ -110,156 +111,19 @@ A list of approximate densities
 # Notes
 Uses the method of characteristics to find shocks.
 """
-function IncrementShockCounts!(shockcounts, systemparams::ShockParams, T, boundary_values)
-
-    stepsize = 0.1
-    radius = systemparams.ballsize
+function IncrementShockCounts!(shockcounts, systemparams::ShockParams, boundary_values)
+    # Unpack the struct
+    dx        = systemparams.stepsize_x
+    dt        = systemparams.stepsize_t
+    stepcount = systemparams.stepcount
     threshold = systemparams.threshold
-    
-    # Initialize a collection of ODEs evolving over space
-    t_lst = Array(T * (1:0.1:length(boundary_values)))
-    x_lst = zeros(length(t_lst))
-    boundary = linear_interpolation(1:length(boundary_values), boundary_values)
-    u_lst = boundary.(1:0.1:length(boundary_values))
 
-    shock_curves = []
-    shock_curve_indices = zeros(length(u_lst))
+    shocks = godunov_burgers_1D_shocks(boundary_values, dx, dt, stepcount, threshold)
 
-    for space_step in 1:size(shockcounts)[2]    
-        # Update all characteristic trajectories
-        x_lst .+= stepsize
-        t_lst .+= stepsize ./ u_lst
-        
-        removed = []
-        introduced = []
-
-        # Search for any out of order trajectories
-        for i in 1:length(t_lst)-1
-
-            # If they've permuted, then it's a shockwave
-            if t_lst[i+1] < t_lst[i]
-                push!(removed, (i, i+1)) 
-            end
-
-            # If the gap is larger than twice the stepsize, 
-            # Add another characteristic curve
-            if t_lst[i+1] - t_lst[i] > 2 * stepsize
-                
-            end
-        end
-
-        # For each shock found in the last search
-        for shock in removed
-
-            # Compute intersection (curve knot)
-            # TODO
-            intersect = (1,1)
-            
-            # Get the current shock curve
-            curve_ind = max(shock_curve_indices[shock[1]], shock_curve_indices[shock[2]])
-
-            # If the curve is new, create a new curve
-            if curve_ind == 0
-                append!(shock_curves, [])
-                curve_ind = length(shock_curves)
-            end
-
-            # Append the knot to the curve, as well as the slope for Rankine-Hugoniot
-            append!(shock_curves[curve_ind], (intersect, u_lst[shock[2]] - u_lst[shock[1]]))
-
-            # Set neighboring labels
-            if shock[1] > 1
-                shock_curve_indices[shock[1]-1] = curve_ind
-            end 
-            if shock[2] < length(shock_curve_indices)
-                shock_curve_indices[shock[2] + 1] = curve_ind
-            end
-        end
-
-        for trajectory in introduced
-            # Introduce new ODE trajectories in the center.
-            
-        end
-
-    end
-
-    # Delete the shocks
-    # deleteat!()
-    
-    # Add the new trajectories
-    # pushat!()
-
-    # Identify all of the indices to increment
-    increment_lst = FindPointsFromCurves(shock_curves, radius)
-
-    # Increment the indices
-    for loc in increment_lst
-        shockcounts[loc[1], loc[2]] += 1
-    end
+    shockcounts .+= shocks
 end
 export IncrementShockCounts!
 
-"""
-Helper function that converts curves to indices to increment
-"""
-function FindPointsFromCurves(shock_curves, radius)
-    increment_lst = []
-    for curve in shock_curves
-
-        # For each pair of knots, get all indices in the associated interval
-        for i in 1:length(curve)-1
-            knot1 = curve[i]
-            knot2 = curve[i+1]
-
-            x_indices = []
-            t_indices = []
-            for x in x_indices
-                for t in t_indices
-                    if distanceToSegment(knot1, knot2, [x,t]) < radius
-                        append!(increment_lst, [x,t])
-                    end
-                end 
-            end
-        end
-    end
-
-    return unique(increment_lst)
-end
-
-"""
-Helper function computing distance from p3
-to the line segment defined by the other points.
-"""
-function distanceToSegment(p1, p2, p3)
-    segment = p2-p1
-    dot_prod = dot(segment, p3)
-
-    if dot_prod > eps()
-        return norm(p2-p3)
-    elseif dot_prod < eps()
-        return norm(p1-p3)
-    else
-        num = abs((p2[1]-p1[1]) * (p1[2] - p3[2]) - (p1[1] - p3[1]) * (p2[2] - p1[1]))
-        return num/norm(p2-p1) 
-    end
-end
-
-"""
-    ComputeIntersection(t1, u1, t2, u2)
-
-Helper function to compute the intersection between
-two characteristic curves in Burgers equation
-starting at x=0.
-"""
-function ComputeIntersection(t1, u1, t2, u2)
-    if u1 == u2
-        return nothing 
-    elseif (t2-t1)/(u2-u1) * u1 * u2 < 0
-        return nothing
-    else
-        return ((u2*t2 - u1*t2)/(u2-u1), (t2-t1)/(u2-u1) * u1 * u2)
-    end
-end
 
 """
 Sample from RTS smoother backwards sampler for random walk

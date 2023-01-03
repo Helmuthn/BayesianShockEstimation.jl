@@ -145,3 +145,38 @@ function godunov_burgers_1D(u0, dx, dt, stepcount)
     return out
 end
 export godunov_burgers_1D
+
+"""
+    godunov_burgers_1D_shocks(u0, dx, dt, stepcount, threshold)
+
+Finds spatial steps in the numericla solution of Burgers equation
+with a slope greater than the threshold.
+These points represent our approximations of shocks.
+
+# Arguments
+ - `u0`        - Initial Boundary Condition
+ - `dx`        - Spatial grid size
+ - `dt`        - Temporal grid size
+ - `stepcount` - Number of steps
+ - `threshold` - slope threshold
+"""
+function godunov_burgers_1D_shocks(u0, dx, dt, stepcount, threshold)
+    solution = godunov_burgers_1D(u0, dx, dt, stepcount)
+    shocks = zeros(Bool, (length(u0)-1,stepcount-1))
+    
+    threshold_x = threshold * dx
+    threshold_t = threshold * dt
+
+    # Check for spatial shocks
+    solution_right = @view solution[2:end,:]
+    solution_left  = @view solution[1:end-1,:]
+    shocks .|= abs.(solution_right .- solution_left) .> threshold_x
+    
+    # Check for temporal shocks
+    solution_up   = @view solution[:, 2:end]
+    solution_down = @view solution[:, 1:end-1]
+    shocks .|= abs.(solution_up .- solution_down) .> threshold_t
+
+    return shocks
+end
+export godunov_burgers_1D_shocks
