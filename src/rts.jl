@@ -51,7 +51,7 @@ with variances ``σ_w^2`` and ``σ_v^2``, respectively.
  - `σ_v`          : Observaton noise standard deviation
 
 # Returns
-    `estimates, variances, RTSvariances`
+    estimates, variances, RTSvariances
 
  - `estimates`    : Kalman filter estimates
  - `variances`    : Kalman filter variances
@@ -85,7 +85,7 @@ with variances ``σ_w^2`` and ``σ_v^2``, respectively.
  - `σ_v`          : Observaton noise standard deviation
 
 # Returns
-    `estimates, variances`
+    estimates, variances
 
  - `estimates` : Kalman filter estimates
  - `variances` : Kalman filter variances
