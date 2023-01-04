@@ -26,6 +26,7 @@ function RTS_sample(estimates, variances, RTSvariances, σ_w)
 
     return out
 end
+export RTS_sample
 
 """
     RTS_Smooth(observations, σ_w, σ_v)
@@ -95,7 +96,7 @@ function KalmanFilterWalk(observations, σ_w, σ_v)
     variances = zeros(length(observations))
 
     # Initialize the Kalman filter
-    estimates[1] = observations[0]
+    estimates[1] = observations[1]
     variances[1] = σ_v^2
 
     for i in 2:length(observations)
@@ -106,6 +107,7 @@ function KalmanFilterWalk(observations, σ_w, σ_v)
 
     return estimates, variances
 end
+export KalmanFilterWalk
 
 """
     BackwardsVarianceWalk(variances, σ_w)
@@ -122,10 +124,13 @@ The variances for the RTS smoother
 """
 function BackwardsVarianceWalk(variances, σ_w)
     RTSvariances = zeros(length(variances))
+    RTSvariances[end] = variances[end]
+
     for i in length(variances)-1:-1:1
         weight = σ_w^2/(variances[i] + σ_w^2)
         RTSvariances[i] = weight * variances[i] + (1-weight)^2 * RTSvariances[i+1]
     end
     return RTSvariances
 end
+export BackwardsVarianceWalk
 
