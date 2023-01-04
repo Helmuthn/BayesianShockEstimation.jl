@@ -71,7 +71,7 @@ function ShockDensity(  systemparams::ShockParams,
     estimates, variances, RTSvariances = RTS_Smooth(observations, σ_w, σ_v)
     
     # Monte Carlo Integration Based On Stochastic Boundaries
-    for _ in range(samplecount)
+    for _ in 1:samplecount
         boundary = RTS_sample(estimates, variances, RTSvariances, σ_w)
         IncrementShockCounts!(shockcounts, systemparams, boundary)
     end
