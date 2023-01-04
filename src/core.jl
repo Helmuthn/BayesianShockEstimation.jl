@@ -63,7 +63,7 @@ function ShockDensity(  systemparams::ShockParams,
                         observations, 
                         samplecount)
 
-    shockcounts = zeros(length(observations), length(systemparams.stepcount))
+    shockcounts = zeros(length(observations)-1, length(systemparams.stepcount)-1)
 
     # Compute RTS Smoothing Details
     σ_w = boundaryparams.σ_w
