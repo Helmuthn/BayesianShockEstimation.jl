@@ -63,7 +63,7 @@ function ShockDensity(  systemparams::ShockParams,
                         observations, 
                         samplecount)
 
-    shockcounts = zeros(length(observations)-1, length(systemparams.stepcount)-1)
+    shockcounts = zeros(length(observations)-1, systemparams.stepcount-1)
 
     # Compute RTS Smoothing Details
     σ_w = boundaryparams.σ_w
@@ -122,10 +122,64 @@ function IncrementShockCounts!(shockcounts, systemparams::ShockParams, boundary_
     dt        = systemparams.stepsize_t
     stepcount = systemparams.stepcount
     threshold = systemparams.threshold
+    radius    = systemparams.ballsize
 
     shocks = godunov_burgers_1D_shocks(boundary_values, dx, dt, stepcount, threshold)
 
-    shockcounts .+= shocks
+    shock_indicator = copy(shocks)
+    offsets = getoffsets(dx, dt, radius)
+    for offset in offsets
+        CheckShiftedShock!(shock_indicator, shocks, offset)
+    end
+    
+
+    shockcounts .+= shock_indicator
 end
 export IncrementShockCounts!
 
+function getoffsets(dx, dt, radius)
+    max_x = Int(floor(radius/dx))
+    max_t = Int(floor(radius/dt))
+    offsets = []
+    for i in 0:max_x
+        for j in 0:max_t
+            if (i * dx)^2 + (j * dt)^2 < 1
+                push!(offsets, (i,j))
+                push!(offsets, (-i,j))
+                push!(offsets, (i,-j))
+                push!(offsets, (-i,-j))
+            end
+        end
+    end
+    return offsets
+end
+
+function CheckShiftedShock!(shock_indicator, shocks, offset)
+    if offset[1] > 0
+        x_indices = 1 + offset[1]:size(shocks)[1]
+    else 
+        x_indices = 1:size(shocks)[1] + offset[1]
+    end
+    if offset[2] > 0
+        t_indices = 1+offset[2]:size(shocks)[2]
+    else
+        t_indices = 1:size(shocks)[2] + offset[2]
+    end
+
+    shifted_block  = @view shocks[x_indices, t_indices]
+
+    if offset[1] > 0
+        x_indices = 1:size(shocks)[1] - offset[1]
+    else 
+        x_indices = 1-offset[1]:size(shocks)[1]
+    end
+    if offset[2] > 0
+        t_indices = 1:size(shocks)[2] - offset[2]
+    else
+        t_indices = 1-offset[2]:size(shocks)[2]
+    end
+
+    original_block = @view shock_indicator[x_indices, t_indices]
+
+    original_block .|= shifted_block
+end

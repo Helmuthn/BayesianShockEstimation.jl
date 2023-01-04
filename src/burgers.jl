@@ -23,7 +23,7 @@ Helper function for Godunov's scheme.
 # Returns
 The value of flux on the boundary between the regions.
 """
-function riemann_solver_burgers(ul,ur)
+function riemann_solver_burgers(ul::Number, ur::Number)
     # Characteristic curves of ul intersect boundary
     if ul >= 0 && ur >= 0
         return flux_burgers(ul)
