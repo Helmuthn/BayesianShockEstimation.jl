@@ -168,13 +168,13 @@ function godunov_burgers_1D_shocks(u0, dx, dt, stepcount, threshold)
     threshold_t = threshold * dt
 
     # Check for spatial shocks
-    solution_right = @view solution[2:end,:]
-    solution_left  = @view solution[1:end-1,:]
+    solution_right = @view solution[2:end,   1:end-1]
+    solution_left  = @view solution[1:end-1, 1:end-1]
     shocks .|= abs.(solution_right .- solution_left) .> threshold_x
     
     # Check for temporal shocks
-    solution_up   = @view solution[:, 2:end]
-    solution_down = @view solution[:, 1:end-1]
+    solution_up   = @view solution[1:end-1, 2:end]
+    solution_down = @view solution[1:end-1, 1:end-1]
     shocks .|= abs.(solution_up .- solution_down) .> threshold_t
 
     return shocks
