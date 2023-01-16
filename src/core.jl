@@ -6,7 +6,7 @@ using LinearAlgebra: dot, norm
 """
     ShockParams
 
-Struct containing all need information for deterministic shock simulations
+Struct containing all needed information for deterministic shock simulations
 
 # Parameters
  - `stepsize_x`: Spatial grid size
