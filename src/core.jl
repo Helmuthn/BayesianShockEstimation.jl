@@ -77,8 +77,7 @@ function ShockDensity(  systemparams::ShockParams,
     end
 
     # Normalize counts to the size of the ϵ-ball
-    volume = BallVolume(systemparams)
-    normalized_counts = shockcounts ./ volume
+    normalized_counts = shockcounts ./ systemparams.ballsize
 
     # Convert to a density by normalizing to the number of samples
     shockdensity = normalized_counts ./ samplecount
