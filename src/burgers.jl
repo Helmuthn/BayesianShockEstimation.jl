@@ -149,7 +149,7 @@ export godunov_burgers_1D
 """
     godunov_burgers_1D_shocks(u0, dx, dt, stepcount, threshold)
 
-Finds spatial steps in the numericla solution of Burgers equation
+Finds spatial steps in the numerical solution of Burgers equation
 with a slope greater than the threshold.
 These points represent our approximations of shocks.
 

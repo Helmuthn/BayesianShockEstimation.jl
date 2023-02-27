@@ -63,7 +63,7 @@ function ShockDensity(  systemparams::ShockParams,
                         observations, 
                         samplecount)
 
-    shockcounts = zeros(length(observations)-1, systemparams.stepcount-1)
+    shockcounts = zeros(length(observations), systemparams.stepcount)
 
     # Compute RTS Smoothing Details
     σ_w = boundaryparams.σ_w
@@ -77,7 +77,7 @@ function ShockDensity(  systemparams::ShockParams,
     end
 
     # Normalize counts to the size of the ϵ-ball
-    normalized_counts = shockcounts ./ systemparams.ballsize
+    normalized_counts = shockcounts ./ systemparams.ballsize ./ 2
 
     # Convert to a density by normalizing to the number of samples
     shockdensity = normalized_counts ./ samplecount
@@ -86,17 +86,6 @@ function ShockDensity(  systemparams::ShockParams,
 end
 export ShockDensity
 
-
-"""
-    BallVolume(systemparams::ShockParams)::Float64
-
-Helper function that computes the volume of the integration ball
-"""
-function BallVolume(systemparams::ShockParams)::Float64
-    dim = 2
-    R = systemparams.ballsize
-    return π^(dim/2) * R^dim / gamma(dim/2 + 1) 
-end
 
 
 """
@@ -111,9 +100,6 @@ Computes shocks for a given boundary.
 
 # Returns
 A list of approximate densities
-
-# Notes
-Uses the method of characteristics to find shocks.
 """
 function IncrementShockCounts!(shockcounts, systemparams::ShockParams, boundary_values)
     # Unpack the struct
@@ -123,62 +109,101 @@ function IncrementShockCounts!(shockcounts, systemparams::ShockParams, boundary_
     threshold = systemparams.threshold
     radius    = systemparams.ballsize
 
-    shocks = godunov_burgers_1D_shocks(boundary_values, dx, dt, stepcount, threshold)
+    solution = godunov_burgers_1D(boundary_values, dx, dt, stepcount)
 
-    shock_indicator = copy(shocks)
     offsets = getoffsets(dx, dt, radius)
-    for offset in offsets
-        CheckShiftedShock!(shock_indicator, shocks, offset)
-    end
-    
+    jumps = rangefilter(solution, offsets)
 
-    shockcounts .+= shock_indicator
+    shockcounts .+= jumps .> threshold
 end
 export IncrementShockCounts!
 
+"""
+    getoffsets(dx, dt, radius)
+
+Gets the offset indices based on step sizes
+and ball radius.
+
+# Arguments
+ - `dx`     : Spatial Stepsize
+ - `dt`     : Temporal Stepsize
+ - `radius` : Search Radius
+
+# Returns
+An array of tuples representing index offsets
+"""
 function getoffsets(dx, dt, radius)
     max_x = Int(floor(radius/dx))
     max_t = Int(floor(radius/dt))
     offsets = []
     for i in 0:max_x
         for j in 0:max_t
-            if (i * dx)^2 + (j * dt)^2 < 1
+            if (i * dx)^2 + (j * dt)^2 < radius^2
                 push!(offsets, (i,j))
-                push!(offsets, (-i,j))
-                push!(offsets, (i,-j))
-                push!(offsets, (-i,-j))
+                if i != 0
+                    push!(offsets, (-i,j))
+                end
+                if j != 0
+                    push!(offsets, (i,-j))
+                end
+                if i !=0 && j != 0
+                    push!(offsets, (-i,-j))
+                end
             end
         end
     end
     return offsets
 end
 
-function CheckShiftedShock!(shock_indicator, shocks, offset)
-    if offset[1] > 0
-        x_indices = 1 + offset[1]:size(shocks)[1]
-    else 
-        x_indices = 1:size(shocks)[1] + offset[1]
-    end
-    if offset[2] > 0
-        t_indices = 1+offset[2]:size(shocks)[2]
-    else
-        t_indices = 1:size(shocks)[2] + offset[2]
-    end
+"""
+    rangefilter(image, offsets)
 
-    shifted_block  = @view shocks[x_indices, t_indices]
+Computes the difference between the max filter
+and the min filter applied to an image on a window
+defined by offsets.
 
-    if offset[1] > 0
-        x_indices = 1:size(shocks)[1] - offset[1]
-    else 
-        x_indices = 1-offset[1]:size(shocks)[1]
+# Arguments
+ - `image`   : The image to be filtered, 2D array
+ - `offsets` : Array of tuples representing index offsets
+
+# Returns
+A 2D array representing the result of the range filter
+"""
+function rangefilter(image, offsets)
+    M, N = size(image)
+    out_max = copy(image)
+    out_min = copy(image)
+    for offset in offsets
+        x_range = 1:M
+        y_range = 1:N
+        if offset[1] > 0
+            x_range = (1 + offset[1]):M
+        end
+        if offset[1] < 0
+            x_range = 1:(M+offset[1])
+        end
+        if offset[2] > 0
+            y_range = (1 + offset[2]):N
+        end
+        if offset[2] < 0
+            y_range = 1:(N+offset[2])
+        end
+
+
+        shifted_image = view(image, x_range .- offset[1],
+                                    y_range .- offset[2])
+
+        out_max_view = view(out_max, x_range, y_range)
+        out_min_view = view(out_min, x_range, y_range)
+        
+        out_max_view .= max.(out_max_view, shifted_image)
+        out_min_view .= min.(out_min_view, shifted_image)
     end
-    if offset[2] > 0
-        t_indices = 1:size(shocks)[2] - offset[2]
-    else
-        t_indices = 1-offset[2]:size(shocks)[2]
-    end
-
-    original_block = @view shock_indicator[x_indices, t_indices]
-
-    original_block .|= shifted_block
+    return out_max .- out_min
 end
+
+
+function isvalidindex(index, M, N)
+    return index[1] > 0 && index[1] <= M && index[2] > 0 && index[2] <= N
+end
+
