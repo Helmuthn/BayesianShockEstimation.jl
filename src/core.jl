@@ -203,7 +203,3 @@ function rangefilter(image, offsets)
 end
 
 
-function isvalidindex(index, M, N)
-    return index[1] > 0 && index[1] <= M && index[2] > 0 && index[2] <= N
-end
-
