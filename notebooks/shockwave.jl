@@ -6,35 +6,12 @@ using InteractiveUtils
 
 # ╔═╡ 981bb432-8ba4-11ed-1108-bd491a5d58cc
 begin
-import Pkg
-	Pkg.develop(url="/home/helmuth/.julia/dev/BayesianShockEstimation")
-	#Pkg.add(url="/home/helmuth/.julia/dev/BayesianShockEstimation")
-	Pkg.add("BenchmarkTools")
-	Pkg.add("Revise")
-	using Revise
+	import Pkg
+	Pkg.add(url="https://github.com/Helmuthn/naumer_Dimensionality_2022.jl")
+	Pkg.add("CairoMakie")
 	using BayesianShockEstimation
 	using CairoMakie
 end
-
-# ╔═╡ e85f2a4c-28f6-488b-b5f5-0890d59edd5e
-begin
-	# Configure the bigger simulations
-	stepsize_x = 0.02
-	stepsize_t = 0.002
-	stepcount_f = 2000
-	ballsize = 0.021
-	threshold = 1
-	
-	shock_params = ShockParams( stepsize_x,
-							  	stepsize_t,
-								stepcount_f,
-								ballsize,
-								threshold);
-
-
-
-	sample_count = 500
-end;
 
 # ╔═╡ 2c9c65ce-375a-4eb9-a896-6b650822de31
 begin
@@ -54,8 +31,28 @@ begin
 	observations = true_boundary + boundary.σ_v * randn(spatial_steps)
 end;
 
+# ╔═╡ e85f2a4c-28f6-488b-b5f5-0890d59edd5e
+begin
+	# Configure the bigger simulations
+	stepsize_x = 0.05
+	stepsize_t = 0.005
+	stepcount_f = 2000
+	ballsize = 0.051
+	threshold = 1
+	
+	shock_params = ShockParams( stepsize_x,
+							  	stepsize_t,
+								stepcount_f,
+								ballsize,
+								threshold);
+
+
+
+	sample_count = 50
+end;
+
 # ╔═╡ 632b23f0-750c-408f-bbf7-ec0a3eca33f8
-true_solution = godunov_burgers_1D(true_boundary, 
+true_solution = godunov_burgers_1D( true_boundary, 
 									stepsize_x, 
 									stepsize_t,
 									stepcount_f);
@@ -73,7 +70,7 @@ end;
 
 # ╔═╡ 634a0428-685c-4d43-8617-f3759e7b423d
 begin
-	thread_count = 24
+	thread_count = Threads.nthreads()
 	density_multi = zeros(length(observations), stepcount_f, thread_count)
 	Threads.@threads for i in 1:thread_count
 		density_multi[:,:,i] .= ShockDensity(shock_params, boundary, observations, sample_count);
@@ -87,7 +84,7 @@ begin
 	
 	figa = Figure(resolution = (800,700),fontsize=20, font="Serif")
 	ax1a = Axis(figa[2,2], xlabel="Space", ylabel="Time", title="Shock Arrival Rate")
-	hma = heatmap!(ax1a, stepsize_x * (1:downsample_rate:spatial_steps-1), stepsize_t * (1:downsample_rate:stepcount_f-1), density[1:downsample_rate:end,1:downsample_rate:end], colorrange=(0,5))
+	hma = heatmap!(ax1a, stepsize_x * (1:downsample_rate:spatial_steps-1), stepsize_t * (1:downsample_rate:stepcount_f-1), density[1:downsample_rate:end,1:downsample_rate:end], colorrange=(0,2))
 	Colorbar(figa[2,3], hma, label="Arrival Rate")
 	xlims!(ax1a, 0, stepsize_x * spatial_steps)
 	ylims!(ax1a, 0, stepsize_t * stepcount_f)
@@ -122,12 +119,12 @@ begin
 end
 
 # ╔═╡ e68830f0-5d6c-4074-a7a8-b036263dacc3
-save("/home/helmuth/sspfig.pdf", figa)
+save("sspfig.pdf", figa)
 
 # ╔═╡ Cell order:
 # ╠═981bb432-8ba4-11ed-1108-bd491a5d58cc
-# ╠═e85f2a4c-28f6-488b-b5f5-0890d59edd5e
 # ╠═2c9c65ce-375a-4eb9-a896-6b650822de31
+# ╠═e85f2a4c-28f6-488b-b5f5-0890d59edd5e
 # ╠═632b23f0-750c-408f-bbf7-ec0a3eca33f8
 # ╠═fde3b39b-f18f-4949-b3ba-81461d895c1c
 # ╠═634a0428-685c-4d43-8617-f3759e7b423d
