@@ -7,7 +7,7 @@ using InteractiveUtils
 # ╔═╡ 981bb432-8ba4-11ed-1108-bd491a5d58cc
 begin
 	import Pkg
-	Pkg.add(url="https://github.com/Helmuthn/naumer_Dimensionality_2022.jl")
+	Pkg.add(url="https://github.com/Helmuthn/BayesianShockEstimation.jl")
 	Pkg.add("CairoMakie")
 	using BayesianShockEstimation
 	using CairoMakie
