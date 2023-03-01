@@ -154,6 +154,7 @@ function getoffsets(dx, dt, radius)
     end
     return offsets
 end
+export getoffsets
 
 """
     rangefilter(image, offsets)
@@ -201,5 +202,6 @@ function rangefilter(image, offsets)
     end
     return out_max .- out_min
 end
+export rangefilter
 
 
