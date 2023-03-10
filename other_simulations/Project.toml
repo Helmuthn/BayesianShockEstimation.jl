@@ -1,0 +1,5 @@
+[deps]
+BayesianShockEstimation = "aa969ce8-6179-40db-adb7-88cfce5cdb65"
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
