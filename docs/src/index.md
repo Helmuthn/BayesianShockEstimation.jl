@@ -33,10 +33,16 @@ Within the function we do in-place updates to count of shockwaves from Monte Car
 IncrementShockCounts!
 ```
 
-The ``\epsilon`` ball normalization term is computed using `BallVolume`.
+`IncrementShockCounts!` makes heavy use of `rangefilter`, which computes the difference magnitude of the range in some arbitrariy kernel described by an array of offset tuples.
 ```@docs
-BallVolume
+rangefilter
 ```
+
+The offsets defining a particular ball can be computed using the helper function `getoffsets`.
+```@docs
+getoffsets
+```
+
 
 ## Godunov Scheme for Burgers' Equation
 
